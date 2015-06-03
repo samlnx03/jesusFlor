@@ -9,7 +9,8 @@ set_time_limit(0);
 ob_implicit_flush();
 
 // direccion y puerto de escucha de este server.
-$address = '192.168.1.81';
+//$address = '192.168.1.81';
+$address = '148.216.49.64';
 $port = 10000;
 
 // resource socket_create ( int $domain , int $type , int $protocol )
@@ -46,6 +47,7 @@ do {
     // $write es la matriz (vacia) de sockets son observados para ver si una escritura no bloqueara
     // $ecept es la matriz de sockets observados para excepciones
     // timeout de 0 para pooling
+    // si hay algo intersante la matriz $read cambiará
     if(socket_select($read, $write, $except, 0) < 1)	
     {
         //    SocketServer::debug("Problem blocking socket_select?");
@@ -68,7 +70,7 @@ do {
         socket_write($msgsock, $msg, strlen($msg));
        	
        	socket_getpeername($msgsock, $ip, $puerto);  // obtiene ip y puerto del cliente
-        echo "Nueva conexion al servidor: {$ip}\n";
+        echo "Nueva conexion al servidor: $ip:$puerto\n";
 
         //$from = NULL;
         //$port = 0;
@@ -78,6 +80,7 @@ do {
     }
    
     // Handle Input
+    $all_read_messages=array();
     foreach ($clients as $key => $client) { // for each client       
         if (in_array($client, $read)) {
             if (false === ($buf = socket_read($client, 2048, PHP_BINARY_READ))) {
@@ -96,13 +99,19 @@ do {
                 socket_close($client);
                 break 2;
             }
-            $talkback = "\r\nCliente {$key}: $buf\r\n";
-            socket_write($client, $talkback, strlen($talkback));
+    	    $all_read_messages[]="$key: $buf\r\n";
+            //$talkback = "\r\nCliente {$key}: $buf\r\n";
+            //socket_write($client, $talkback, strlen($talkback));
             echo "Cliente {$key}: $buf\n";
         }
-       
-    }       
+    }
+    foreach($clients as $key => $cliente){
+    	foreach($all_read_messages as $keydummy => $mensaje){
+		socket_write($cliente, $mensaje, strlen($mensaje));
+	}
+    }
 } while (true);
 
 socket_close($sock);
 ?>
+
